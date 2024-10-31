@@ -2,16 +2,12 @@ import boto3
 import logging
 from decimal import Decimal, InvalidOperation
 from botocore.exceptions import ClientError
+from config import get_dynamodb_connection
 
 
 logging.basicConfig(level=logging.INFO)
 
 
-
-def get_dynamodb_connection():
-   
-    dynamodb = boto3.resource('dynamodb', endpoint_url='http://localhost:8000')
-    return dynamodb
 
 def create_table_if_not_exists(table_name, key_schema, attribute_definitions):
     
@@ -77,7 +73,7 @@ def create_user_table():
     attribute_definitions = [
         {'AttributeName': 'username', 'AttributeType': 'S'}
     ]
-    create_table_if_not_exists('Users', key_schema, attribute_definitions)
+    create_table_if_not_exists('UsersRecords', key_schema, attribute_definitions)
 
 
 

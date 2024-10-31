@@ -26,12 +26,14 @@ app.register_blueprint(auth_routes)
 
 dynamodb = get_dynamodb_connection()
 
-print("create_user_table up!")
+
 create_user_table()  
-print("create_sales_table up!") 
+print("User_table up!!!") 
 create_sales_table()  
-print("create_expense_table up!")
-create_expense_table()  
+print("Sales_table up!!!") 
+create_expense_table()
+print("Expense_table up!!!")
+  
 
 
 print("All necessary tables are set up!")

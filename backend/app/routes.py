@@ -19,7 +19,7 @@ auth_routes = Blueprint('auth_routes', __name__)
 dynamodb = get_dynamodb_connection()
 sales_table = dynamodb.Table('SalesRecords')
 expenses_table = dynamodb.Table('ExpenseRecords')
-users_table = dynamodb.Table('Users')  
+users_table = dynamodb.Table('UsersRecords')  
 
 # ---------- User Registration Route ---------- #
 
