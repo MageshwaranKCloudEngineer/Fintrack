@@ -1,0 +1,9 @@
+name: my-python-env  # Name of your environment
+channels:
+  - defaults
+dependencies:
+  - python=3.9
+  - pip
+  - pip:
+    - flask
+    - boto3
