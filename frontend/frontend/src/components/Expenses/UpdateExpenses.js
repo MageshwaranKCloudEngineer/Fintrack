@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 
@@ -7,6 +7,15 @@ const UpdateExpense = () => {
   const [expenseData, setExpenseData] = useState({ utilities: '', repairs: '', maintenance: '' });
   const navigate = useNavigate();
 
+  const fetchExpense = useCallback(async () => {
+    try {
+      const response = await axios.get(`http://localhost:5000/expenses/${id}`, { withCredentials: true });
+      setExpenseData(response.data);
+    } catch (err) {
+      console.error('Failed to fetch expense data:', err);
+    }
+  }, [id]);  // Only recreate fetchExpense when `id` changes
+
   useEffect(() => {
     const isAuthenticated = !!sessionStorage.getItem('user'); // Check if the user is authenticated
     if (!isAuthenticated) {
@@ -14,16 +23,8 @@ const UpdateExpense = () => {
     } else {
       fetchExpense(); // Fetch expense data only if authenticated
     }
-  }, [id, navigate]);
+  }, [id, navigate, fetchExpense]);  // `fetchExpense` is stable due to useCallback
 
-  const fetchExpense = async () => {
-    try {
-      const response = await axios.get(`http://localhost:5000/expenses/${id}`, { withCredentials: true });
-      setExpenseData(response.data);
-    } catch (err) {
-      console.error('Failed to fetch expense data:', err);
-    }
-  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
