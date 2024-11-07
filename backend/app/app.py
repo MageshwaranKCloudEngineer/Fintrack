@@ -17,6 +17,7 @@ app.config['SESSION_COOKIE_SECURE'] = False
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  
 
 
+
 # Register blueprints for routes
 app.register_blueprint(sales_routes)
 app.register_blueprint(expense_routes)

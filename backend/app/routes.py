@@ -355,3 +355,5 @@ def calculate_profit_or_loss():
         
     else:
         return jsonify({"loss for this month": profit_or_loss}), 200
+        
+        

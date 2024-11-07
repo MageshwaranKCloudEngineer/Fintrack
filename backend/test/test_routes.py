@@ -1,133 +1,346 @@
-import unittest
-import json
-from app import app  # Import the Flask app
-from threading import Thread
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../backend')))
+
+from backend.app.config import get_dynamodb_connection
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../backend')))
+
+from backend.app.routes import expense_routes, profit_routes, auth_routes, sales_routes
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../backend')))
+
+from backend.app.models import validate_integer, validate_price
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../backend')))
+
+from backend.app import app
+
+import pytest
+import boto3, unittest, secrets
+from flask import Flask, session
+import bcrypt
+from flask.testing import FlaskClient
+from unittest.mock import patch
 
 class FinTrackTestCase(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.app = app.test_client()
+        cls.dynamodb = boto3.resource('dynamodb', endpoint_url='http://localhost:8000')
+        app.secret_key = secrets.token_hex(16)
+        # Create SalesRecords table
+        cls.sales_table = cls.dynamodb.create_table(
+            TableName='SalesRecords',
+            KeySchema=[
+                {'AttributeName': 'product_name', 'KeyType': 'HASH'},
+            ],
+            AttributeDefinitions=[
+                {'AttributeName': 'product_name', 'AttributeType': 'S'},
+            ],
+            ProvisionedThroughput={
+                'ReadCapacityUnits': 5,
+                'WriteCapacityUnits': 5
+            }
+        )
+
+        # Create ExpenseRecords table
+        cls.expense_table = cls.dynamodb.create_table(
+            TableName='ExpenseRecords',
+            KeySchema=[
+                {'AttributeName': 'expense_name', 'KeyType': 'HASH'},
+            ],
+            AttributeDefinitions=[
+                {'AttributeName': 'expense_name', 'AttributeType': 'S'},
+            ],
+            ProvisionedThroughput={
+                'ReadCapacityUnits': 5,
+                'WriteCapacityUnits': 5
+            }
+        )
+
+        # Wait for tables to be created
+        cls.sales_table.meta.client.get_waiter('table_exists').wait(TableName='SalesRecords')
+        cls.expense_table.meta.client.get_waiter('table_exists').wait(TableName='ExpenseRecords')
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.sales_table.delete()
+        cls.expense_table.delete()
+
     def setUp(self):
-        self.app = app.test_client()
-        self.app.testing = True
+        self.client = app.test_client()
 
-        # Clear any existing data in your DynamoDB tables if necessary
-
-    # ---------- Test Sales Routes ---------- #
-
-
+    def tearDown(self):
+        # Clean up any records if needed
+        self.sales_table.delete_item(Key={'product_name': 'TestProduct'})
+        self.expense_table.delete_item(Key={'expense_name': 'TestExpense'})
 
 
-    def test_create_sales_record_invalid_data_types(self):
-        response = self.app.post('/sales', json={
-            'product_name': 'Test Product',
-            'buying_price': 50,
-            'selling_price': 'seventy-five',  # Invalid type
-            'units_sold': 100,
-            'returns': 10
-        })
-        self.assertEqual(response.status_code, 400)
-        self.assertIn(b'Invalid input data', response.data)
 
-    def test_get_sales_records(self):
-        response = self.app.get('/sales')
-        self.assertEqual(response.status_code, 200)
-
-    def test_update_sales_record(self):
-        # First, create a record to update
-        self.app.post('/sales', json={
-            'product_name': 'Test Product',
-            'buying_price': 50,
-            'selling_price': 75,
-            'units_sold': 100,
-            'returns': 10
-        })
-        
-        response = self.app.put('/sales/Test Product', json={
-            'selling_price': 80,
-            'units_sold': 120
-        })
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Sales record updated', response.data)
-
-    def test_update_non_existent_sales_record(self):
-        response = self.app.put('/sales/NonExistentProduct', json={
-            'selling_price': 80
-        })
-        self.assertEqual(response.status_code, 404)
-        self.assertIn(b'Sales record not found', response.data)
-
-    def test_delete_sales_record(self):
-        # First, create a record to delete
-        self.app.post('/sales', json={
-            'product_name': 'Test Product',
-            'buying_price': 50,
-            'selling_price': 75,
-            'units_sold': 100,
-            'returns': 10
-        })
-        
-        response = self.app.delete('/sales/Test Product')
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Sales record deleted', response.data)
-
-    def test_delete_non_existent_sales_record(self):
-        response = self.app.delete('/sales/NonExistentProduct')
-        self.assertEqual(response.status_code, 404)
-        self.assertIn(b'Sales record not found', response.data)
-
-    def test_concurrent_requests(self):
-        def create_sales():
-            self.app.post('/sales', json={
-                'product_name': 'Concurrent Product',
-                'buying_price': 50,
-                'selling_price': 75,
-                'units_sold': 100,
-                'returns': 10
-            })
-
-        threads = [Thread(target=create_sales) for _ in range(10)]
-        for thread in threads:
-            thread.start()
-        for thread in threads:
-            thread.join()
-
-        # Check if records were created
-        response = self.app.get('/sales')
-        self.assertEqual(response.status_code, 200)
-        self.assertGreater(len(response.json), 0)  # Ensure at least one record is created
-
-    # ---------- Test Expense Routes ---------- #
-
-    def test_create_expense_record(self):
-        response = self.app.post('/expenses', json={
-            'id': '1',
-            'utilities': 200,
-            'repairs': 150,
-            'maintenance': 100
-        })
-        self.assertEqual(response.status_code, 201)
-        self.assertIn(b'Expense record created', response.data)
+def test_register_user(client: FlaskClient):
+    response = client.post('/register', json={
+        'username': 'testuser',
+        'password': 'password123'
+    })
+    assert response.status_code == 201
+    assert response.json['message'] == 'User registered successfully'
 
 
-    def test_get_expense_records(self):
-        response = self.app.get('/expenses')
-        self.assertEqual(response.status_code, 200)
 
-    def test_delete_expense_record(self):
-        # First, create a record to delete
-        self.app.post('/expenses', json={
-            'id': '1',
-            'utilities': 200,
-            'repairs': 150,
-            'maintenance': 100
-        })
+def test_login_user(client: FlaskClient):
+    
+    client.post('/register', json={
+        'username': 'testuser',
+        'password': 'password123'
+    })
 
-        response = self.app.delete('/expenses/1')
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(b'Expense record deleted', response.data)
+    
+    response = client.post('/login', json={
+        'username': 'testuser',
+        'password': 'password123'
+    })
+    assert response.status_code == 200
+    assert response.json['message'] == 'Login successful'
 
-    def test_delete_non_existent_expense_record(self):
-        response = self.app.delete('/expenses/999')  # Assuming 999 doesn't exist
-        self.assertEqual(response.status_code, 404)
-        self.assertIn(b'Expense record not found', response.data)
 
-if __name__ == '__main__':
-    unittest.main()
+
+def test_create_sales_record(client: FlaskClient):
+    
+    client.post('/register', json={
+        'username': 'testuser',
+        'password': 'password123'
+    })
+    client.post('/login', json={
+        'username': 'testuser',
+        'password': 'password123'
+    })
+
+    
+    response = client.post('/sales', json={
+        'product_name': 'Product A',
+        'buying_price': 10.0,
+        'selling_price': 20.0,
+        'units_sold': 5,
+        'returns': 0
+    })
+    assert response.status_code == 201
+    assert response.json['message'] == 'Sales record created'
+
+
+
+def test_update_sales_record(client: FlaskClient):
+   
+    client.post('/register', json={
+        'username': 'testuser',
+        'password': 'password123'
+    })
+    client.post('/login', json={
+        'username': 'testuser',
+        'password': 'password123'
+    })
+
+   
+    client.post('/sales', json={
+        'product_name': 'Product A',
+        'buying_price': 10.0,
+        'selling_price': 20.0,
+        'units_sold': 5,
+        'returns': 0
+    })
+
+  
+    response = client.put('/sales/Product A', json={
+        'selling_price': 25.0
+    })
+    assert response.status_code == 200
+    assert response.json['message'] == 'Sales record updated'
+
+
+
+def test_get_sales_record(client: FlaskClient):
+    
+    client.post('/register', json={
+        'username': 'testuser',
+        'password': 'password123'
+    })
+    client.post('/login', json={
+        'username': 'testuser',
+        'password': 'password123'
+    })
+
+    
+    client.post('/sales', json={
+        'product_name': 'Product A',
+        'buying_price': 10.0,
+        'selling_price': 20.0,
+        'units_sold': 5,
+        'returns': 0
+    })
+
+    
+    response = client.get('/sales/Product A')
+    assert response.status_code == 200
+    assert response.json['product_name'] == 'Product A'
+
+
+
+def test_delete_sales_record(client: FlaskClient):
+    
+    client.post('/register', json={
+        'username': 'testuser',
+        'password': 'password123'
+    })
+    client.post('/login', json={
+        'username': 'testuser',
+        'password': 'password123'
+    })
+
+    
+    client.post('/sales', json={
+        'product_name': 'Product A',
+        'buying_price': 10.0,
+        'selling_price': 20.0,
+        'units_sold': 5,
+        'returns': 0
+    })
+
+
+    response = client.delete('/sales/Product A')
+    assert response.status_code == 200
+    assert response.json['message'] == 'Sales record deleted'
+
+
+
+def test_create_expense_record(client: FlaskClient):
+    # Login first
+    client.post('/register', json={
+        'username': 'testuser',
+        'password': 'password123'
+    })
+    client.post('/login', json={
+        'username': 'testuser',
+        'password': 'password123'
+    })
+
+    
+    response = client.post('/expenses', json={
+        'id': '1',
+        'utilities': 100.0,
+        'repairs': 50.0,
+        'maintenance': 30.0
+    })
+    assert response.status_code == 201
+    assert response.json['message'] == 'Expense record created'
+
+
+
+def test_update_expense_record(client: FlaskClient):
+   
+    client.post('/register', json={
+        'username': 'testuser',
+        'password': 'password123'
+    })
+    client.post('/login', json={
+        'username': 'testuser',
+        'password': 'password123'
+    })
+
+    
+    client.post('/expenses', json={
+        'id': '1',
+        'utilities': 100.0,
+        'repairs': 50.0,
+        'maintenance': 30.0
+    })
+
+    
+    response = client.put('/expenses/1', json={
+        'utilities': 120.0,
+        'repairs': 60.0,
+        'maintenance': 40.0
+    })
+    assert response.status_code == 200
+    assert response.json['message'] == 'Expense record updated'
+
+
+
+def test_get_expense_record(client: FlaskClient):
+   
+    client.post('/register', json={
+        'username': 'testuser',
+        'password': 'password123'
+    })
+    client.post('/login', json={
+        'username': 'testuser',
+        'password': 'password123'
+    })
+
+   
+    client.post('/expenses', json={
+        'id': '1',
+        'utilities': 100.0,
+        'repairs': 50.0,
+        'maintenance': 30.0
+    })
+
+    
+    response = client.get('/expenses/1')
+    assert response.status_code == 200
+    assert response.json['id'] == '1'
+
+
+
+def test_delete_expense_record(client: FlaskClient):
+    
+    client.post('/register', json={
+        'username': 'testuser',
+        'password': 'password123'
+    })
+    client.post('/login', json={
+        'username': 'testuser',
+        'password': 'password123'
+    })
+
+    
+    client.post('/expenses', json={
+        'id': '1',
+        'utilities': 100.0,
+        'repairs': 50.0,
+        'maintenance': 30.0
+    })
+
+    
+    response = client.delete('/expenses/1')
+    assert response.status_code == 200
+    assert response.json['message'] == 'Expense record deleted'
+
+
+def test_calculate_profit(client: FlaskClient):
+    
+    client.post('/register', json={
+        'username': 'testuser',
+        'password': 'password123'
+    })
+    client.post('/login', json={
+        'username': 'testuser',
+        'password': 'password123'
+    })
+
+    
+    client.post('/sales', json={
+        'product_name': 'Product A',
+        'buying_price': 10.0,
+        'selling_price': 20.0,
+        'units_sold': 5,
+        'returns': 0
+    })
+    client.post('/expenses', json={
+        'id': '1',
+        'utilities': 100.0,
+        'repairs': 50.0,
+        'maintenance': 30.0
+    })
+
+    
+    response = client.get('/profit')
+    assert response.status_code == 200
+    assert 'profit' in response.json
