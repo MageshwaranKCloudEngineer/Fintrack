@@ -1,0 +1,106 @@
+pipeline {
+    agent any
+
+    environment {
+        VENV_PATH = '/my-venv'  // Define the Python virtual environment path
+        FRONTEND_PATH = '/project/FinTrack/frontend/frontend'  // Path to the frontend directory
+    }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                echo "Cloning GitHub repository..."
+                git credentialsId: 'github-credentials', url: 'https://github.com/MageshwaranKCloudEngineer/Fintrack'
+            }
+        }
+
+        stage('Set Up Python Environment') {
+            steps {
+                script {
+                    echo "Setting up the Python environment..."
+                    sh 'python3 --version || sudo apt-get install python3 -y' 
+                    
+                    if (!fileExists("${VENV_PATH}/bin/activate")) {
+                        sh "python3 -m venv ${VENV_PATH}"  // Create virtual environment if not already present
+                    }
+                }
+                // Activate the virtual environment and install dependencies from requirements.txt
+                sh """
+                    source ${VENV_PATH}/bin/activate
+                    echo "Upgrading pip..."
+                    pip install --upgrade pip
+                    echo "Installing Python dependencies..."
+                    pip install -r requirements.txt
+                    echo "Installed Python dependencies."
+                """
+            }
+        }
+
+        stage('Install Node.js 16.20.2 and Frontend Dependencies') {
+            steps {
+                script {
+                    echo "Installing Node.js version 16.20.2 and frontend dependencies..."
+                    
+                    // Check if Node.js 16.20.2 is installed; if not, install it
+                    sh """
+                        if ! node --version | grep -q 'v16.20.2'; then
+                            echo "Installing Node.js version 16.20.2..."
+                            curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+                            sudo apt-get install -y nodejs=16.20.2-1nodesource1
+                        fi
+                        node --version  # Verify the installed Node.js version
+                    """
+                    
+                    dir("${FRONTEND_PATH}") {
+                        echo "Installing frontend dependencies using npm..."
+                        sh 'npm install'
+                        echo "Frontend dependencies installed."
+                    }
+                }
+            }
+        }
+
+        stage('Start Application') {
+            steps {
+                script {
+                    echo "Starting the backend Python application..."
+                    sh """
+                        source ${VENV_PATH}/bin/activate
+                        nohup python3 app.py > backend.log 2>&1 &
+                    """
+                    
+                    echo "Starting the frontend Node.js application..."
+                    dir("${FRONTEND_PATH}") {
+                        sh 'nohup npm start > frontend.log 2>&1 &'
+                    }
+                }
+            }
+        }
+
+        stage('Result') {
+            steps {
+                script {
+                    echo "Evaluating the results..."
+                    def buildStatus = currentBuild.result ?: 'SUCCESS'
+                    echo "Build Status: ${buildStatus}"
+
+                    if (buildStatus == 'FAILURE') {
+                        echo "Tests failed! Please review the logs."
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()  
+        }
+        failure {
+            echo "Pipeline failed!"  
+        }
+        success {
+            echo "Pipeline completed successfully!"  
+        }
+    }
+}
