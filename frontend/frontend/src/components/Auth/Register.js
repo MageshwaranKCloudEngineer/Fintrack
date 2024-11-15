@@ -50,7 +50,7 @@ const Register = () => {
         <button type="submit">Register</button>
       </form>
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      {success && <p style={{ color: 'white' }}>{success}</p>} {/* Changed color to white */}
+      {success && <p style={{ color: 'white' }}>{success}</p>}
 
       <button onClick={goToLogin} style={{ marginTop: '20px' }}>
         Already have an account?  Login
