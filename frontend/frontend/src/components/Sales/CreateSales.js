@@ -24,7 +24,7 @@ const CreateSales = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post('http://localhost:5000/sales', {
+      await axios.post('http://3.12.230.158:5000/sales', {
         product_name: productName,
         buying_price: buyingPrice,
         selling_price: sellingPrice,
