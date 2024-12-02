@@ -22,7 +22,7 @@ const UpdateSales = () => {
     } else {
       const fetchSalesData = async () => {
         try {
-          const response = await axios.get(`http://localhost:5000/sales/${product_name}`, { withCredentials: true });
+          const response = await axios.get(`http://3.12.230.158:5000/sales/${product_name}`, { withCredentials: true });
           setSalesData(response.data);
         } catch (err) {
           setError(err.response?.data?.error || 'Failed to fetch sales data');
@@ -36,7 +36,7 @@ const UpdateSales = () => {
   const handleUpdateSales = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`http://localhost:5000/sales/${product_name}`, salesData, { withCredentials: true });
+      await axios.put(`http://3.12.230.158:5000/sales/${product_name}`, salesData, { withCredentials: true });
       alert("Expense record updated successfully.");
       navigate('/sales'); 
     } catch (error) {
@@ -45,7 +45,7 @@ const UpdateSales = () => {
   };
 
   const handleLogout = async () => {
-    await axios.post('http://localhost:5000/logout', {}, { withCredentials: true });
+    await axios.post('http://3.12.230.158:5000/logout', {}, { withCredentials: true });
     sessionStorage.removeItem('user'); 
     navigate('/login');
   };
