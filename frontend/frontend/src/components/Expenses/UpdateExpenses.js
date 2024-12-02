@@ -9,7 +9,7 @@ const UpdateExpense = () => {
 
   const fetchExpense = useCallback(async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/expenses/${id}`, { withCredentials: true });
+      const response = await axios.get(`http://3.12.230.158:5000/expenses/${id}`, { withCredentials: true });
       setExpenseData(response.data);
     } catch (err) {
       console.error('Failed to fetch expense data:', err);
@@ -34,7 +34,7 @@ const UpdateExpense = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`http://localhost:5000/expenses/${id}`, expenseData, { withCredentials: true });
+      await axios.put(`http://3.12.230.158:5000/expenses/${id}`, expenseData, { withCredentials: true });
       alert("Expense record updated successfully.");
       navigate('/expenses');
     } catch (error) {
