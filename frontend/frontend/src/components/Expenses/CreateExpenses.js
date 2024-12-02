@@ -21,7 +21,7 @@ const CreateExpense = () => {
     setSuccess('');
 
     try {
-      await axios.post('http://localhost:5000/expenses', expenseData);
+      await axios.post('http://3.12.230.158:5000/expenses', expenseData);
       setSuccess('Expense record created successfully.');
       navigate('/expenses');
     } catch (error) {
