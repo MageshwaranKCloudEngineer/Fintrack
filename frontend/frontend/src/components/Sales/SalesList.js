@@ -11,7 +11,7 @@ const SalesList = () => {
   useEffect(() => {
     const fetchSales = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/sales', { withCredentials: true });
+        const response = await axios.get('http://3.12.230.158:5000/sales', { withCredentials: true });
         setSalesRecords(response.data);
       } catch (err) {
         setError('Failed to fetch sales records. Please try again later.');
@@ -32,7 +32,7 @@ const SalesList = () => {
   const deleteSalesRecord = async (productName) => {
     if (window.confirm(`Are you sure you want to delete ${productName}?`)) {
       try {
-        await axios.delete(`http://localhost:5000/sales/${productName}`, { withCredentials: true });
+        await axios.delete(`http://3.12.230.158:5000/sales/${productName}`, { withCredentials: true });
         setSalesRecords(salesRecords.filter(record => record.product_name !== productName));
       } catch (err) {
         setError('Failed to delete sales record. Please try again later.');
@@ -42,7 +42,7 @@ const SalesList = () => {
   };
 
   const handleLogout = async () => {
-    await axios.post('http://localhost:5000/logout', {}, { withCredentials: true });
+    await axios.post('http://3.12.230.158:5000/logout', {}, { withCredentials: true });
     sessionStorage.removeItem('user'); 
     navigate('/login');
   };
