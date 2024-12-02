@@ -17,7 +17,7 @@ const ExpensesList = () => {
 
   const fetchExpenses = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/expenses', { withCredentials: true });
+      const response = await axios.get('http://3.12.230.158:5000/expenses', { withCredentials: true });
       setExpenses(response.data);
     } catch (error) {
       console.error('Error fetching expenses:', error);
@@ -27,7 +27,7 @@ const ExpensesList = () => {
   const deleteExpense = async (id) => {
     if (window.confirm(`Are you sure you want to delete this expense record?`)) {
       try {
-        await axios.delete(`http://localhost:5000/expenses/${id}`, { withCredentials: true });
+        await axios.delete(`http://3.12.230.158:5000/expenses/${id}`, { withCredentials: true });
         setExpenses(expenses.filter(expense => expense.id !== id));
       } catch (error) {
         console.error('Error deleting expense:', error);
