@@ -26,7 +26,7 @@ const ProfitDashboard = () => {
 
   const fetchProfitData = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/profits', { withCredentials: true });
+      const response = await axios.get('http://3.12.230.158:5000/profits', { withCredentials: true });
       const data = response.data;
       const isProfit = data.hasOwnProperty('profit for this month');
       setIsProfit(isProfit);
