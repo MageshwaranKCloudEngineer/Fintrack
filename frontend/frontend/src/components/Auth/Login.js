@@ -14,7 +14,7 @@ const Login = () => {
 
     try {
       const response = await axios.post(
-        'http://localhost:5000/login', 
+        'http://3.12.230.158:5000/login', 
         { username, password }, 
         { withCredentials: true } 
       );
