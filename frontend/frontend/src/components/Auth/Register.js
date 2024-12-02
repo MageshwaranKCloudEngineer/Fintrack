@@ -15,7 +15,7 @@ const Register = () => {
     setSuccess(''); 
 
     try {
-      await axios.post('http://localhost:5000/register', { username, password }, { withCredentials: true });
+      await axios.post('http://3.12.230.158:5000/register', { username, password }, { withCredentials: true });
       setSuccess('Registration successful! You can now log in.');
       setTimeout(() => {
         navigate('/login');
