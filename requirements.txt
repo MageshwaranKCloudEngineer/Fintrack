@@ -1,7 +1,7 @@
 Flask
-boto3  
 Flask-Cors  
 pytest
 pytest-flask
 flask-jwt-extended
 bcrypt
+boto3  
