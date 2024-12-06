@@ -60,11 +60,11 @@ const CreateSales = () => {
           </thead>
           <tbody>
             <tr>
-              <td style={tableDataStyle}>Name of the product</td>
+              <td style={tableDataStyle}>Product Name</td>
               <td style={tableDataStyle}>
                 <input
                   type="text"
-                  placeholder="Product Name"
+                  placeholder="Magesh"
                   value={productName}
                   onChange={(e) => setProductName(e.target.value)}
                   required
