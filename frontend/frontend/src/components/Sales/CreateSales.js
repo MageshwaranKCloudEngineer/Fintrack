@@ -64,7 +64,7 @@ const CreateSales = () => {
               <td style={tableDataStyle}>
                 <input
                   type="text"
-                  placeholder="Magesh"
+                  placeholder="Product Name"
                   value={productName}
                   onChange={(e) => setProductName(e.target.value)}
                   required
