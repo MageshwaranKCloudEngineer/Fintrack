@@ -2,106 +2,116 @@ pipeline {
     agent any
 
     environment {
-        VENV_PATH = 'venv'  
-        FRONTEND_PATH = '/FinTrack/frontend/frontend' 
-        BACKEND_PATH = '/FinTrack/backend/app'  
+        GIT_URL = 'https://github.com/MageshwaranKCloudEngineer/Fintrack'  
+        GIT_CREDENTIALS_ID = 'github-credentials' 
+        DOCKER_HUB_CREDENTIALS_ID = 'dockerhub-credentials' 
+        DOCKER_IMAGE = 'magesh506/fintech-react-app' 
+        IMAGE_TAG = 'Latest'  
+        CONTAINER_NAME = 'devops-Fintech'  
+        PORT = '9090'
     }
 
     stages {
-        stage('Clone Repository') {
+        stage('Checkout') {
             steps {
-                echo "Cloning GitHub repository..."
-                git credentialsId: 'github-credentials', url: 'https://github.com/MageshwaranKCloudEngineer/Fintrack'
-            }
-        }
-
-        stage('Set Up Python Environment') {
-            steps {
-                script {
-                    echo "Setting up the Python environment..."
-                    sh 'python3 --version || sudo apt-get install python3 -y'
-                    
-                    if (!fileExists("${VENV_PATH}/bin/activate")) {
-                        sh "python3 -m venv ${VENV_PATH}"
-                    }
-                }
+                echo "Cloning repository..."
+                git credentialsId: GIT_CREDENTIALS_ID, url: GIT_URL, poll: false
                 
-                sh """
-                    source ${VENV_PATH}/bin/activate
-                    echo "Upgrading pip..."
-                    pip install --upgrade pip
-                    echo "Installing Python dependencies..."
-                    pip install -r requirements.txt
-                    echo "Installed Python dependencies."
-                """
+                echo "Workspace is located at: ${env.WORKSPACE}"
             }
         }
 
-        stage('Install Node.js 16.20.2 and Frontend Dependencies') {
+
+        stage('Install Dependencies and Build') {
             steps {
                 script {
-                    echo "Installing Node.js version 16.20.2 and frontend dependencies..."
-                    sh """
-                        if ! node --version | grep -q 'v16.20.2'; then
-                            echo "Installing Node.js version 16.20.2..."
-                            curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
-                            sudo apt-get install -y nodejs=16.20.2-1nodesource1 || sudo apt-get install -y nodejs
-                        fi
-                        node --version  # Verify the installed Node.js version
-                    """
-                    
-                    dir("${FRONTEND_PATH}") {
-                        echo "Installing frontend dependencies using npm..."
+                    echo "Installing dependencies and building React app..."
+                    dir("${env.WORKSPACE}/frontend/frontend") { 
                         sh 'npm install'
-                        echo "Frontend dependencies installed."
+                        sh 'npm install axios'
+                        sh 'export CI=false && npm run build'
                     }
                 }
             }
         }
 
-        stage('Start Application') {
+        stage('Prepare Dockerfile') {
             steps {
                 script {
-                    echo "Starting the backend Python application..."
-                    dir("${BACKEND_PATH}") {
-                        sh """
-                            source ../../${VENV_PATH}/bin/activate
-                            nohup python3 app.py > backend.log 2>&1 &
-                        """
-                    }
-                    
-                    echo "Starting the frontend Node.js application..."
-                    dir("${FRONTEND_PATH}") {
-                        sh 'nohup npm start > frontend.log 2>&1 &'
+                    dir("${env.WORKSPACE}/frontend/frontend") { 
+                        writeFile file: 'Dockerfile', text: '''
+                        FROM nginx:alpine
+                        COPY build /usr/share/nginx/html
+                        EXPOSE 80
+                        '''
+                        echo "Dockerfile created for deployment."
                     }
                 }
             }
         }
 
-        stage('Result') {
+        stage('Build and Push Docker Image') {
             steps {
                 script {
-                    echo "Evaluating the results..."
-                    def buildStatus = currentBuild.result ?: 'SUCCESS'
-                    echo "Build Status: ${buildStatus}"
-
-                    if (buildStatus == 'FAILURE') {
-                        echo "Tests failed! Please review the logs."
+                    echo "Building and pushing Docker image..."
+                    withCredentials([usernamePassword(credentialsId: DOCKER_HUB_CREDENTIALS_ID, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        dir("${env.WORKSPACE}/frontend/frontend") { 
+                            sh """
+                            set -e
+                            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+                            docker build -t ${DOCKER_IMAGE}:${IMAGE_TAG} .
+                            docker push ${DOCKER_IMAGE}:${IMAGE_TAG}
+                            docker logout
+                            """
+                        }
                     }
+                }
+            }
+        }
+
+
+        stage('Deploy Locally') {
+            steps {
+                script {
+                    echo "Deploying Docker container locally..."
+                    sh """
+                    set -e
+
+                    # Pull the latest Docker image
+                    docker pull ${DOCKER_IMAGE}:${IMAGE_TAG}
+
+                    # Check if the container exists before stopping and removing
+                    if docker ps -a --filter "name=${CONTAINER_NAME}" --format "{{.Names}}" | grep -w ${CONTAINER_NAME}; then
+                        echo "Container ${CONTAINER_NAME} exists. Stopping and removing it."
+                        docker stop ${CONTAINER_NAME}
+                        docker rm ${CONTAINER_NAME}
+                    else
+                        echo "Container ${CONTAINER_NAME} does not exist. Skipping stop and remove."
+                    fi
+
+                    # Run the container on the specified port
+                    docker run -d --name ${CONTAINER_NAME} -p ${PORT}:80 ${DOCKER_IMAGE}:${IMAGE_TAG}
+                    """
+                }
+            }
+        }
+
+        stage('Cleanup') {
+            steps {
+                script {
+                    echo "Cleaning up unused Docker resources..."
+                    sh 'docker system prune -f'
                 }
             }
         }
     }
 
     post {
-        always {
-            cleanWs()  
+        success {
+            echo 'Deployment completed successfully!'
         }
         failure {
-            echo "Pipeline failed!"  
-        }
-        success {
-            echo "Pipeline completed successfully!"  
+            echo 'Deployment failed.'
         }
     }
 }
