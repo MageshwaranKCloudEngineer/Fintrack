@@ -48,7 +48,7 @@ const CreateExpense = () => {
           </thead>
           <tbody>
             <tr>
-              <td style={tableDataStyle}>date</td>
+              <td style={tableDataStyle}>Date</td>
               <td style={tableDataStyle}>
                 <input
                   type="text"
@@ -62,7 +62,7 @@ const CreateExpense = () => {
               </td>
             </tr>
             <tr>
-              <td style={tableDataStyle}>Uti</td>
+              <td style={tableDataStyle}>Utilities</td>
               <td style={tableDataStyle}>
                 <input
                   type="number"
