@@ -23,7 +23,7 @@ const App = () => {
           paddingBottom: '50px' 
         }}
       >
-        <h1 style={{ textAlign: 'center' }}>Fintech - Sales and Expenses Management System</h1>
+        <h1 style={{ textAlign: 'center' }}> - Sales and Expenses Management System</h1>
 
         <Routes> 
           {/* Auth Routes */}
