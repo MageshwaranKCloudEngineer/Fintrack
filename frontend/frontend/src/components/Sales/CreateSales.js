@@ -49,7 +49,7 @@ const CreateSales = () => {
 
   return (
     <div style={{ padding: '20px', color: 'white', width: '90%', margin: '0 auto' }}>
-      <h2>Create Sales Rerd</h2>
+      <h2>Create Sales Record</h2>
       <form onSubmit={handleCreateSales}>
         <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '20px' }}>
           <thead>
