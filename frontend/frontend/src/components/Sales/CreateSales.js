@@ -60,7 +60,7 @@ const CreateSales = () => {
           </thead>
           <tbody>
             <tr>
-              <td style={tableDataStyle}>PrName</td>
+              <td style={tableDataStyle}>Product Name</td>
               <td style={tableDataStyle}>
                 <input
                   type="text"
