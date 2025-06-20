@@ -43,27 +43,8 @@
 
 ```
 
-FinTrack/
-├── backend/
-│   └── app/
-│       ├── main.py               # Entry point for backend API
-│       ├── database.py           # DynamoDB connection
-│       ├── expenses.py           # Business logic for expenses
-│       └── utils.py              # Helper functions
-├── frontend/
-│   ├── public/
-│   └── src/
-│       ├── components/
-│       │   ├── AddExpense.js
-│       │   ├── UpdateExpense.js
-│       │   └── Dashboard.js
-│       ├── App.js
-│       └── index.js
-├── .github/
-│   └── workflows/
-│       └── ci.yml                # GitHub Actions pipeline
-├── requirements.txt
-└── README.md
+![image](https://github.com/user-attachments/assets/f937e078-1ac8-43fa-911f-5547e4278c39)
+
 
 ````
 
